@@ -3,20 +3,38 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/user"
+	"syscall"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
+const (
+	B  = 1
+	KB = 1024 * B
+	MB = 1024 * KB
+	GB = 1024 * MB
+)
+
 var docStyle = lipgloss.NewStyle().Margin(1, 2)
 
 type item struct {
-	title, desc string
+	title, desc     string
+	callingFunction func() string
 }
 
-func (i item) Title() string       { return i.title }
-func (i item) Description() string { return i.desc }
+func (i item) Title() string { return i.title }
+
+// func (i item) Description() string { return i.desc }
+func (i item) Description() string {
+	if i.callingFunction != nil {
+		return i.callingFunction()
+	}
+	return ""
+}
+
 func (i item) FilterValue() string { return i.title }
 
 type model struct {
@@ -50,9 +68,17 @@ func (m model) View() string {
 func main() {
 	items := []list.Item{
 
-		item{title: "Get availabe disk space.", desc: ""},
-		item{title: "Get available memory.", desc: ""},
-		item{title: "Get the current logged in user.", desc: ""},
+		item{title: "Get available memory.", desc: "",
+			callingFunction: func() string {
+				return fmt.Sprintf("%d GB", ram()/GB)
+			},
+		},
+		item{title: "Get the current logged in user.", desc: "",
+			callingFunction: func() string {
+				u, _ := user.Current()
+				return u.Username
+			},
+		},
 		item{title: "Quit", desc: ""},
 	}
 
@@ -65,4 +91,12 @@ func main() {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
 	}
+}
+
+func ram() uint64 {
+	totalRamBit := &syscall.Sysinfo_t{}
+	if err := syscall.Sysinfo(totalRamBit); err != nil {
+		return 0
+	}
+	return uint64(totalRamBit.Totalram) * uint64(totalRamBit.Unit)
 }
