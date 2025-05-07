@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/user"
 	"syscall"
@@ -77,9 +78,19 @@ func (m model) View() string {
 func main() {
 	items := []list.Item{
 
+		item{title: "Get available disk space.", desc: "",
+			callingFunction: func() string {
+				return fmt.Sprintf("All: %v GB, Used: %v GB, Free: %v GB", int(diskHandler().All)/int(GB), int(diskHandler().Used)/int(GB), int(diskHandler().Free)/int(GB))
+			},
+		},
 		item{title: "Get available memory.", desc: "",
 			callingFunction: func() string {
 				return fmt.Sprintf("%d GB", ram()/GB)
+			},
+		},
+		item{title: "Get free RAM.", desc: "",
+			callingFunction: func() string {
+				return fmt.Sprintf("%d GB", freeram()/GB)
 			},
 		},
 		item{title: "Get the current logged in user.", desc: "",
@@ -92,7 +103,7 @@ func main() {
 	}
 
 	m := model{list: list.New(items, list.NewDefaultDelegate(), 0, 0)}
-	m.list.Title = "My Fave Things"
+	m.list.Title = "System Info"
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
@@ -108,4 +119,21 @@ func ram() uint64 {
 		return 0
 	}
 	return uint64(totalRamBit.Totalram) * uint64(totalRamBit.Unit)
+}
+
+func freeram() uint64 {
+	totalRamBit := &syscall.Sysinfo_t{}
+	if err := syscall.Sysinfo(totalRamBit); err != nil {
+		return 0
+	}
+	return uint64(totalRamBit.Freeram) * uint64(totalRamBit.Unit)
+}
+
+func diskHandler() *DiskStatus {
+	disk := &DiskStatus{}
+	err := disk.diskUsage("/")
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	return disk
 }
