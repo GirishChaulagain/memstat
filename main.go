@@ -48,9 +48,18 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" {
+
+		switch msg.String() {
+		case "ctrl+c", "q":
 			return m, tea.Quit
+		case "enter":
+			if i, ok := m.list.SelectedItem().(item); ok {
+				if i.title == "Quit" {
+					return m, tea.Quit
+				}
+			}
 		}
+
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
