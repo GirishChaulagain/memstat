@@ -24,14 +24,17 @@ var docStyle = lipgloss.NewStyle().Margin(1, 2)
 type item struct {
 	title, desc     string
 	callingFunction func() string
+	isSelected      bool
 }
 
 func (i item) Title() string { return i.title }
 
 // func (i item) Description() string { return i.desc }
 func (i item) Description() string {
-	if i.callingFunction != nil {
-		return i.callingFunction()
+	if i.isSelected {
+		if i.callingFunction != nil {
+			return i.callingFunction()
+		}
 	}
 	return ""
 }
@@ -68,6 +71,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
+
+	selectedIndex := m.list.Index()
+
+	items := m.list.Items()
+	for i := range items {
+		if it, ok := items[i].(item); ok {
+			it.isSelected = (i == selectedIndex)
+			items[i] = it
+		}
+	}
+	m.list.SetItems(items)
 	return m, cmd
 }
 
